@@ -1,0 +1,21 @@
+{
+  "name": "front-agent",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "concurrently \"ts-node-dev --respawn src/server.ts\" \"ts-node-dev --respawn src/api.ts\"",
+    "dev:client": "ts-node-dev --respawn src/server.ts",
+    "dev:api": "ts-node-dev --respawn src/api.ts",
+    "build": "tsc",
+    "start": "node dist/server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.12.7",
+    "concurrently": "^9.2.1",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.4.5"
+  }
+}

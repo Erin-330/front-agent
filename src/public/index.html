@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Front Agent — Admin</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f5f5;
+      color: #111;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #111;
+      color: #fff;
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    header h1 { font-size: 18px; font-weight: 600; letter-spacing: -0.3px; }
+
+    #status-badge {
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #333;
+      color: #aaa;
+    }
+
+    #status-badge.ok { background: #166534; color: #bbf7d0; }
+
+    main {
+      max-width: 960px;
+      margin: 40px auto;
+      padding: 0 24px;
+      display: grid;
+      gap: 24px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 24px;
+      border: 1px solid #e5e7eb;
+    }
+
+    .card h2 { font-size: 14px; font-weight: 600; color: #6b7280; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; }
+
+    .stat { background: #f9fafb; border-radius: 8px; padding: 16px; }
+    .stat .label { font-size: 12px; color: #9ca3af; margin-bottom: 6px; }
+    .stat .value { font-size: 24px; font-weight: 700; }
+
+    pre {
+      background: #f9fafb;
+      border-radius: 8px;
+      padding: 16px;
+      font-size: 13px;
+      color: #374151;
+      overflow-x: auto;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Front Agent Admin</h1>
+    <span id="status-badge">connecting...</span>
+  </header>
+
+  <main>
+    <div class="card">
+      <h2>Overview</h2>
+      <div class="stat-grid">
+        <div class="stat">
+          <div class="label">Agent</div>
+          <div class="value" id="agent-name">—</div>
+        </div>
+        <div class="stat">
+          <div class="label">Status</div>
+          <div class="value" id="agent-status">—</div>
+        </div>
+        <div class="stat">
+          <div class="label">Last Check</div>
+          <div class="value" style="font-size:14px" id="last-check">—</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Raw API Response</h2>
+      <pre id="raw-response">Loading...</pre>
+    </div>
+  </main>
+
+  <script>
+    const API = 'http://localhost:4002';
+
+    async function fetchStatus() {
+      try {
+        const res = await fetch(`${API}/api/status`);
+        const data = await res.json();
+
+        document.getElementById('agent-name').textContent = data.agent ?? '—';
+        document.getElementById('agent-status').textContent = data.status ?? '—';
+        document.getElementById('last-check').textContent =
+          new Date(data.timestamp).toLocaleTimeString('ko-KR');
+        document.getElementById('raw-response').textContent =
+          JSON.stringify(data, null, 2);
+
+        const badge = document.getElementById('status-badge');
+        badge.textContent = data.status === 'ok' ? 'online' : 'error';
+        badge.className = data.status === 'ok' ? 'ok' : '';
+      } catch (e) {
+        document.getElementById('raw-response').textContent = String(e);
+      }
+    }
+
+    fetchStatus();
+    setInterval(fetchStatus, 5000);
+  </script>
+</body>
+</html>
