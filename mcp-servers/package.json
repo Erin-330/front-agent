@@ -1,0 +1,8 @@
+{
+  "name": "mcp-servers",
+  "private": true,
+  "description": "MCP tool servers",
+  "scripts": {
+    "start:front": "npm run start --prefix front"
+  }
+}
