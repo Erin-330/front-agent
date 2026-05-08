@@ -1,0 +1,17 @@
+services:
+  front:
+    build: .
+    container_name: mcp-front
+    ports:
+      - "5004:5004"
+    env_file:
+      - .env
+    volumes:
+      - ./index.js:/app/index.js
+      - ./agent.js:/app/agent.js
+      - ~/.claude:/root/.claude
+      - keyring-data:/root/.local/share/keyrings
+    restart: unless-stopped
+
+volumes:
+  keyring-data:

@@ -1,0 +1,27 @@
+{
+  "mcpServers": {
+    "front-test": {
+      "type": "http",
+      "url": "http://localhost:5004/mcp",
+      "timeout": 600000,
+      "headers": {
+        "x-user-id": "erin@rorr.club"
+      }
+    },
+    "front": {
+      "type": "http",
+      "url": "http://mcp-agents-staging-alb-249976027.us-east-1.elb.amazonaws.com:5004/mcp",
+      "timeout": 600000,
+      "headers": {
+        "x-user-id": "erin@rorr.club"
+      }
+    },
+    "api-endpoints": {
+      "type": "http",
+      "url": "http://mcp-agents-staging-alb-249976027.us-east-1.elb.amazonaws.com:5003/mcp",
+      "headers": {
+        "x-user-id": "erin@rorr.club"
+      }
+    }
+  }
+}
