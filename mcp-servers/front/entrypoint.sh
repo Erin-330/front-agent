@@ -17,4 +17,16 @@ else
   echo "No credentials found in SSM."
 fi
 
+if [ -f "$CLAUDE_DIR/.credentials.json" ]; then
+  inotifywait -m -e close_write "$CLAUDE_DIR/.credentials.json" 2>/dev/null | \
+    while read; do
+      aws ssm put-parameter \
+        --name "$SSM_CREDS_PATH" \
+        --value "$(cat "$CLAUDE_DIR/.credentials.json")" \
+        --type SecureString --overwrite --region $REGION > /dev/null 2>&1 \
+        && echo "Credentials synced to SSM."
+    done &
+  echo "Credentials watcher started."
+fi
+
 exec node /app/index.js
