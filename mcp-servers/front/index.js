@@ -195,58 +195,6 @@ function createServer() {
     }
   );
 
-  server.tool(
-    "design_ui",
-    "기능 요구사항 기반으로 UI/화면 설계를 제안합니다",
-    {
-      feature: z.string().describe("구현할 기능 설명"),
-      constraints: z.string().optional().describe("제약 조건(디자인 시스템, 플랫폼, 기술 스택 등)"),
-    },
-    async ({ feature, constraints }) => ({
-      content: [
-        {
-          type: "text",
-          text: [
-            `[front] "${feature}" UI 설계`,
-            constraints ? `제약: ${constraints}` : undefined,
-            "",
-            "- 화면/플로우, 주요 컴포넌트, 상태/에러/로딩 처리를 포함한 설계안을 반환합니다.",
-          ]
-            .filter(Boolean)
-            .join("\n"),
-        },
-      ],
-    })
-  );
-
-  server.tool(
-    "review_component",
-    "컴포넌트 코드/구조를 리뷰하고 개선안을 제안합니다",
-    {
-      code: z.string().describe("리뷰할 코드 또는 핵심 발췌"),
-      focus: z
-        .string()
-        .optional()
-        .describe("집중할 포인트(접근성, 상태 관리, 성능, 아키텍처, 테스트 등)"),
-    },
-    async ({ code, focus }) => ({
-      content: [
-        {
-          type: "text",
-          text: [
-            "[front] 컴포넌트 리뷰",
-            focus ? `포커스: ${focus}` : undefined,
-            "",
-            "입력 코드:",
-            code,
-          ]
-            .filter(Boolean)
-            .join("\n"),
-        },
-      ],
-    })
-  );
-
   return server;
 }
 
