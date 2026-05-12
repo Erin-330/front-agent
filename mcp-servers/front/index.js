@@ -31,15 +31,23 @@ function slugify(text) {
 }
 
 function extractTitle(summary) {
-  for (const line of summary.split("\n").map((l) => l.trim()).filter(Boolean)) {
-    const clean = line.replace(/^[#*\->]+\s*/, "").replace(/\*\*/g, "").replace(/`/g, "");
+  for (const line of summary
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean)) {
+    const clean = line
+      .replace(/^[#*\->]+\s*/, "")
+      .replace(/\*\*/g, "")
+      .replace(/`/g, "");
     if (clean.length > 5) return clean.slice(0, 72);
   }
   return summary.slice(0, 72);
 }
 
 async function hasChanges(workDir) {
-  const { stdout } = await execAsync("git status --porcelain", { cwd: workDir });
+  const { stdout } = await execAsync("git status --porcelain", {
+    cwd: workDir,
+  });
   return stdout.trim().length > 0;
 }
 
@@ -51,7 +59,12 @@ function createServer() {
     "프롬프트를 받아 GitHub 저장소 코드를 자동으로 수정하고 PR을 생성합니다",
     {
       prompt: z.string().describe("구현할 기능 또는 수정 사항 설명"),
-      github_token: z.string().optional().describe("호출자의 GitHub PAT (`gh auth token`으로 획득). 미전달 시 서버 환경변수 GH_TOKEN 사용."),
+      github_token: z
+        .string()
+        .optional()
+        .describe(
+          "호출자의 GitHub PAT (`gh auth token`으로 획득). 미전달 시 서버 환경변수 GH_TOKEN 사용.",
+        ),
     },
     async ({ prompt, github_token }, extra) => {
       const sendLog = async (msg) => {
@@ -64,13 +77,15 @@ function createServer() {
         } catch {}
       };
 
-      const token = github_token || process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
+      const token = github_token || process.env.GH_TOKEN;
       if (!token) {
         return {
-          content: [{
-            type: "text",
-            text: "Error: GitHub 토큰이 없습니다.\n\n로컬에서 다음 명령어로 토큰을 확인하고 github_token 파라미터로 전달해주세요:\n\n  gh auth token",
-          }],
+          content: [
+            {
+              type: "text",
+              text: "Error: GitHub 토큰이 없습니다.\n\n로컬에서 다음 명령어로 토큰을 확인하고 github_token 파라미터로 전달해주세요:\n\n  gh auth token",
+            },
+          ],
         };
       }
 
@@ -78,44 +93,62 @@ function createServer() {
 
       const repo_url = process.env.GITHUB_REPO_URL;
       const base_branch = "develop";
-      if (!repo_url) return { content: [{ type: "text", text: "Error: GITHUB_REPO_URL이 설정되지 않았습니다." }] };
+      if (!repo_url)
+        return {
+          content: [
+            {
+              type: "text",
+              text: "Error: GITHUB_REPO_URL이 설정되지 않았습니다.",
+            },
+          ],
+        };
 
       // gh CLI 설치 여부 확인
       try {
         await execAsync("gh --version");
       } catch {
         return {
-          content: [{
-            type: "text",
-            text: "Error: gh CLI가 설치되어 있지 않습니다.\n\n설치 방법:\n  macOS:  brew install gh\n  Linux:  https://github.com/cli/cli/blob/trunk/docs/install_linux.md\n\n설치 후 'gh auth login'으로 인증하세요.",
-          }],
+          content: [
+            {
+              type: "text",
+              text: "Error: gh CLI가 설치되어 있지 않습니다.\n\n설치 방법:\n  macOS:  brew install gh\n  Linux:  https://github.com/cli/cli/blob/trunk/docs/install_linux.md\n\n설치 후 'gh auth login'으로 인증하세요.",
+            },
+          ],
         };
       }
 
       const { owner, repo } = parseRepoUrl(repo_url);
 
       const now = new Date();
-      const datePart = now.toISOString().slice(0, 16).replace(/[-T:]/g, "").slice(0, 12);
+      const datePart = now
+        .toISOString()
+        .slice(0, 16)
+        .replace(/[-T:]/g, "")
+        .slice(0, 12);
       const branchName = `agent/${datePart}-${slugify(prompt)}`;
 
       // Check if this branch (and PR) already exists — handles ALB-timeout retries
       try {
         const { stdout: existingPrJson } = await execAsync(
           `gh pr list --repo ${owner}/${repo} --head ${branchName} --state open --json url,number`,
-          { env: ghEnv }
+          { env: ghEnv },
         );
         const existingPrs = JSON.parse(existingPrJson || "[]");
         if (existingPrs.length > 0) {
           const pr = existingPrs[0];
           await sendLog(`♻️ 이미 생성된 PR 발견: ${pr.url}`);
           return {
-            content: [{
-              type: "text",
-              text: `♻️ 이미 생성된 PR이 있습니다 (중복 방지).\n\nURL: ${pr.url}\n브랜치: ${branchName}`,
-            }],
+            content: [
+              {
+                type: "text",
+                text: `♻️ 이미 생성된 PR이 있습니다 (중복 방지).\n\nURL: ${pr.url}\n브랜치: ${branchName}`,
+              },
+            ],
           };
         }
-      } catch { /* PR 없으면 계속 진행 */ }
+      } catch {
+        /* PR 없으면 계속 진행 */
+      }
 
       const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "front-agent-"));
 
@@ -127,13 +160,24 @@ function createServer() {
       try {
         // 1. Clone
         await sendLog(`📦 저장소 클론 중... (${owner}/${repo}@${base_branch})`);
-        await execAsync(`gh repo clone ${owner}/${repo} . -- --depth=1 --branch ${base_branch}`, {
-          cwd: tmpDir,
-          env: ghEnv,
-        });
+        await execAsync(
+          `gh repo clone ${owner}/${repo} . -- --depth=1 --branch ${base_branch}`,
+          {
+            cwd: tmpDir,
+            env: ghEnv,
+          },
+        );
+
+        // Embed token in remote URL so git push works without a credential helper
+        await execAsync(
+          `git remote set-url origin https://x-access-token:${token}@github.com/${owner}/${repo}.git`,
+          { cwd: tmpDir }
+        );
 
         // Configure git identity for commits
-        await execAsync('git config user.email "agent@rorr.club"', { cwd: tmpDir });
+        await execAsync('git config user.email "agent@rorr.club"', {
+          cwd: tmpDir,
+        });
         await execAsync('git config user.name "front-agent"', { cwd: tmpDir });
 
         // 2. Create new branch
@@ -141,7 +185,9 @@ function createServer() {
         await execAsync(`git checkout -b ${branchName}`, { cwd: tmpDir });
 
         // 3. Run Claude coding agent
-        await sendLog(`🤖 Claude 에이전트 실행 중... (프롬프트: "${prompt.slice(0, 60)}")`);
+        await sendLog(
+          `🤖 Claude 에이전트 실행 중... (프롬프트: "${prompt.slice(0, 60)}")`,
+        );
         const raw = await runCodingAgent(prompt, tmpDir, sendLog);
         const { title: agentTitle, summary } = parseSummary(raw);
         await sendLog("✅ Claude 에이전트 완료");
@@ -149,10 +195,12 @@ function createServer() {
         // 4. Check if anything changed
         if (!(await hasChanges(tmpDir))) {
           return {
-            content: [{
-              type: "text",
-              text: `에이전트가 실행됐지만 변경된 파일이 없습니다.\n\n${summary}`,
-            }],
+            content: [
+              {
+                type: "text",
+                text: `에이전트가 실행됐지만 변경된 파일이 없습니다.\n\n${summary}`,
+              },
+            ],
           };
         }
 
@@ -161,9 +209,12 @@ function createServer() {
         await execAsync("git add -A", { cwd: tmpDir });
         await execAsync(
           `git commit -m "feat: ${prompt.slice(0, 60).replace(/"/g, "'")}\n\nGenerated by front-agent"`,
-          { cwd: tmpDir }
+          { cwd: tmpDir },
         );
-        await execAsync(`git push origin ${branchName}`, { cwd: tmpDir, env: ghEnv });
+        await execAsync(`git push origin ${branchName}`, {
+          cwd: tmpDir,
+          env: ghEnv,
+        });
 
         // 6. Create PR via gh CLI
         await sendLog("🔗 PR 생성 중...");
@@ -174,7 +225,7 @@ function createServer() {
         try {
           const { stdout } = await execAsync(
             `gh pr create --repo ${owner}/${repo} --title ${JSON.stringify(prTitle)} --body ${JSON.stringify(prBody)} --head ${branchName} --base ${base_branch}`,
-            { cwd: tmpDir, env: ghEnv }
+            { cwd: tmpDir, env: ghEnv },
           );
           prUrl = stdout.trim();
         } catch (err) {
@@ -182,15 +233,17 @@ function createServer() {
           if (err.message.includes("already exists")) {
             const { stdout: existingJson } = await execAsync(
               `gh pr list --repo ${owner}/${repo} --head ${branchName} --state open --json url`,
-              { env: ghEnv }
+              { env: ghEnv },
             );
             prUrl = JSON.parse(existingJson)[0]?.url;
             await sendLog(`♻️ 이미 존재하는 PR 반환: ${prUrl}`);
             return {
-              content: [{
-                type: "text",
-                text: `♻️ PR이 이미 존재합니다 (중복 방지).\n\nURL: ${prUrl}\n브랜치: ${branchName}\n\n## 변경 내용\n${summary}`,
-              }],
+              content: [
+                {
+                  type: "text",
+                  text: `♻️ PR이 이미 존재합니다 (중복 방지).\n\nURL: ${prUrl}\n브랜치: ${branchName}\n\n## 변경 내용\n${summary}`,
+                },
+              ],
             };
           }
           throw err;
@@ -198,23 +251,27 @@ function createServer() {
 
         await sendLog(`🎉 PR 생성 완료! ${prUrl}`);
         return {
-          content: [{
-            type: "text",
-            text: `✅ PR 생성 완료!\n\nURL: ${prUrl}\n브랜치: ${branchName}\n\n## 변경 내용\n${summary}`,
-          }],
+          content: [
+            {
+              type: "text",
+              text: `✅ PR 생성 완료!\n\nURL: ${prUrl}\n브랜치: ${branchName}\n\n## 변경 내용\n${summary}`,
+            },
+          ],
         };
       } finally {
         clearInterval(heartbeat);
         await fs.rm(tmpDir, { recursive: true, force: true });
       }
-    }
+    },
   );
 
   return server;
 }
 
 app.post("/mcp", async (req, res) => {
-  const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+  const transport = new StreamableHTTPServerTransport({
+    sessionIdGenerator: undefined,
+  });
   const server = createServer();
   await server.connect(transport);
   await transport.handleRequest(req, res, req.body);
@@ -223,4 +280,6 @@ app.post("/mcp", async (req, res) => {
 
 app.get("/health", (_, res) => res.json({ status: "ok", server: "front" }));
 
-app.listen(5004, () => process.stdout.write("front MCP server running on :5004\n"));
+app.listen(5004, () =>
+  process.stdout.write("front MCP server running on :5004\n"),
+);
