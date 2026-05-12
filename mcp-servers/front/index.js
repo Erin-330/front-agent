@@ -44,11 +44,11 @@ function extractTitle(summary) {
   return summary.slice(0, 72);
 }
 
-async function hasChanges(workDir) {
-  const { stdout } = await execAsync("git status --porcelain", {
-    cwd: workDir,
-  });
-  return stdout.trim().length > 0;
+async function hasChanges(workDir, baseBranch = "develop") {
+  const { stdout: status } = await execAsync("git status --porcelain", { cwd: workDir });
+  if (status.trim().length > 0) return true;
+  const { stdout: log } = await execAsync(`git log origin/${baseBranch}..HEAD --oneline`, { cwd: workDir });
+  return log.trim().length > 0;
 }
 
 function createServer() {
@@ -193,7 +193,7 @@ function createServer() {
         await sendLog("✅ Claude 에이전트 완료");
 
         // 4. Check if anything changed
-        if (!(await hasChanges(tmpDir))) {
+        if (!(await hasChanges(tmpDir, base_branch))) {
           return {
             content: [
               {
