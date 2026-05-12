@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+# Ensure common install locations are on PATH
+export PATH="/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:$PATH"
+export PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH"
+
 ECR_URI="239460481239.dkr.ecr.us-east-1.amazonaws.com/mcp-agents-front"
 CLUSTER="mcp-agents-staging-cluster"
 SERVICE="mcp-agents-front"

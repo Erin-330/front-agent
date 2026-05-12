@@ -76,7 +76,31 @@ function createServer() {
       const datePart = now.toISOString().slice(0, 16).replace(/[-T:]/g, "").slice(0, 12);
       const branchName = `agent/${datePart}-${slugify(prompt)}`;
 
+      // Check if this branch (and PR) already exists — handles ALB-timeout retries
+      const existingPrRes = await fetch(
+        `https://api.github.com/repos/${owner}/${repo}/pulls?head=${owner}:${branchName}&state=open`,
+        { headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github.v3+json" } }
+      );
+      if (existingPrRes.ok) {
+        const existingPrs = await existingPrRes.json();
+        if (existingPrs.length > 0) {
+          const pr = existingPrs[0];
+          await sendLog(`♻️ 이미 생성된 PR 발견: ${pr.html_url}`);
+          return {
+            content: [{
+              type: "text",
+              text: `♻️ 이미 생성된 PR이 있습니다 (중복 방지).\n\nURL: ${pr.html_url}\n브랜치: ${branchName}`,
+            }],
+          };
+        }
+      }
+
       const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "front-agent-"));
+
+      // Heartbeat: send a ping every 30s to keep ALB connection alive
+      const heartbeat = setInterval(async () => {
+        await sendLog("⏳ 작업 진행 중...");
+      }, 30_000);
 
       try {
         // 1. Clone
@@ -137,7 +161,23 @@ function createServer() {
 
         const pr = await prRes.json();
 
+        // 422 with "A pull request already exists" → return the existing PR
         if (!prRes.ok) {
+          if (prRes.status === 422 && JSON.stringify(pr).includes("pull request already exists")) {
+            const existingRes = await fetch(
+              `https://api.github.com/repos/${owner}/${repo}/pulls?head=${owner}:${branchName}&state=open`,
+              { headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github.v3+json" } }
+            );
+            const existingList = await existingRes.json();
+            const existing = existingList[0];
+            await sendLog(`♻️ 이미 존재하는 PR 반환: ${existing.html_url}`);
+            return {
+              content: [{
+                type: "text",
+                text: `♻️ PR이 이미 존재합니다 (중복 방지).\n\nURL: ${existing.html_url}\n브랜치: ${branchName}\n\n## 변경 내용\n${summary}`,
+              }],
+            };
+          }
           throw new Error(`GitHub API error: ${JSON.stringify(pr)}`);
         }
 
@@ -149,6 +189,7 @@ function createServer() {
           }],
         };
       } finally {
+        clearInterval(heartbeat);
         await fs.rm(tmpDir, { recursive: true, force: true });
       }
     }
