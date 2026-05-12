@@ -283,6 +283,5 @@ app.post("/mcp", async (req, res) => {
 
 app.get("/health", (_, res) => res.json({ status: "ok", server: "front" }));
 
-app.listen(5004, () =>
-  process.stdout.write("front MCP server running on :5004\n"),
-);
+const PORT = process.env.PORT || 5004;
+app.listen(PORT, () => process.stdout.write(`front MCP server running on :${PORT}\n`));

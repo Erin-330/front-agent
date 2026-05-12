@@ -9,8 +9,8 @@ services:
     volumes:
       - ./index.js:/app/index.js
       - ./agent.js:/app/agent.js
-      - ~/.claude:/root/.claude
-      - keyring-data:/root/.local/share/keyrings
+      - ~/.claude:/home/node/.claude
+      - keyring-data:/home/node/.local/share/keyrings
     restart: unless-stopped
 
 volumes:
