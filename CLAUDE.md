@@ -4,14 +4,32 @@
 
 ## 핵심 규칙
 
-**UI 구현, 기능 추가, 코드 수정 등 모든 구현 요청은 반드시 `mcp__front__implement_and_pr` 툴을 사용하세요.**
+### MCP 라우팅
 
-- 로컬 파일을 직접 탐색하거나 수정하지 마세요.
-- 사용자가 UI나 기능 구현을 요청하면, 즉시 `mcp__front__implement_and_pr`를 호출하세요.
+- **웹 배포** 요청 → `mcp__web__*` 툴 사용
+- **익스텐션** 관련 요청 → `mcp__extension__*` 툴 사용
+- **MCP가 하나만 연결된 경우** → 연결된 MCP 툴을 사용 (사용자에게 확인하지 않고 바로 진행)
+
+### 구현 요청 (UI 구현, 기능 추가, readme수정, 코드 수정 등)
+
+**반드시 MCP 툴을 사용하세요. 로컬 파일을 직접 탐색하거나 수정하지 마세요.**
+
+- 웹 관련 구현 → `mcp__web__implement_and_pr`
+- 익스텐션 관련 구현 → `mcp__extension__implement_and_pr`
+- 대상이 명확하지 않거나 **한쪽 MCP가 연결 끊김 상태이면 연결된 MCP로 바로 진행**
 - `implement_and_pr`의 `prompt` 파라미터에 사용자 요청을 그대로 전달하세요.
+
+### 예외: 로컬 직접 수정 허용
+
+- **Docker 관련 코드** (Dockerfile, docker-compose.yml 등) → 로컬 파일 직접 수정 허용
 
 ## MCP 툴 용도
 
-- `mcp__front__implement_and_pr` — 코드 구현 + PR 생성 (기본 툴)
-- `mcp__front__design_ui` — UI 설계안만 필요할 때
-- `mcp__front__review_component` — 컴포넌트 리뷰
+| 툴 | 용도 |
+|---|---|
+| `mcp__web__implement_and_pr` | 웹 코드 구현 + PR 생성 |
+| `mcp__web__design_ui` | 웹 UI 설계안 |
+| `mcp__web__review_component` | 웹 컴포넌트 리뷰 |
+| `mcp__extension__implement_and_pr` | 익스텐션 코드 구현 + PR 생성 |
+| `mcp__extension__design_ui` | 익스텐션 UI 설계안 |
+| `mcp__extension__review_component` | 익스텐션 컴포넌트 리뷰 |

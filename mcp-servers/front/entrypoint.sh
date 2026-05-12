@@ -2,7 +2,7 @@
 set -e
 
 SSM_CREDS_PATH="/mcp-agents-front/claude-credentials"
-CLAUDE_DIR="/root/.claude"
+CLAUDE_DIR="/home/node/.claude"
 REGION="us-east-1"
 
 # Restore claude credentials from SSM

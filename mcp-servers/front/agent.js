@@ -10,7 +10,7 @@ export async function runCodingAgent(prompt, workDir, onLog) {
     const fullPrompt = prompt + SYSTEM_SUFFIX;
     const child = spawn(
       "claude",
-      ["-p", fullPrompt, "--allowedTools", "Edit,Read,Write,Bash,Glob,Grep", "--output-format", "text"],
+      ["-p", fullPrompt, "--allowedTools", "Edit,Read,Write,Bash,Glob,Grep", "--dangerously-skip-permissions", "--output-format", "text"],
       { cwd: workDir, stdio: ["ignore", "pipe", "pipe"] }
     );
 
