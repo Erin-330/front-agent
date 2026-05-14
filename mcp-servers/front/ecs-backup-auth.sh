@@ -1,6 +1,6 @@
 #!/bin/bash
 # 컨테이너 안에서 실행: claude /login 후 이 스크립트 실행
-SSM_CREDS_PATH="/mcp-agents-front/claude-credentials"
+SSM_CREDS_PATH="${SSM_CREDS_PATH:-/mcp-agents-front/claude-credentials}"
 CLAUDE_DIR="/root/.claude"
 REGION="us-east-1"
 
