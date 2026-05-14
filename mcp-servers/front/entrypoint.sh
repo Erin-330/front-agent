@@ -1,12 +1,14 @@
 #!/bin/sh
 set -e
 
-SSM_CREDS_PATH="${SSM_CREDS_PATH:-/mcp-agents-front/claude-credentials}"
+SSM_CREDS_PATH="${SSM_CREDS_PATH:-/mcp-agents-front/claude-credentials-front}"
 CLAUDE_DIR="/home/node/.claude"
 REGION="us-east-1"
+SSM_UPDATING_FLAG="/tmp/.ssm_updating"
+
+mkdir -p "$CLAUDE_DIR"
 
 # Restore claude credentials from SSM
-mkdir -p "$CLAUDE_DIR"
 CREDS=$(aws ssm get-parameter --name "$SSM_CREDS_PATH" --with-decryption --region $REGION \
   --query 'Parameter.Value' --output text 2>/dev/null || true)
 
@@ -18,9 +20,11 @@ else
 fi
 
 if [ -f "$CLAUDE_DIR/.credentials.json" ]; then
+  # Local credentials changed → push to SSM (skip if change came from SSM itself)
   inotifywait -m -e close_write,moved_to "$CLAUDE_DIR/" 2>/dev/null | \
     while read dir event file; do
       [ "$file" = ".credentials.json" ] || continue
+      [ -f "$SSM_UPDATING_FLAG" ] && continue
       aws ssm put-parameter \
         --name "$SSM_CREDS_PATH" \
         --value "$(cat "$CLAUDE_DIR/.credentials.json")" \
@@ -28,6 +32,29 @@ if [ -f "$CLAUDE_DIR/.credentials.json" ]; then
         && echo "Credentials synced to SSM."
     done &
   echo "Credentials watcher started."
+
+  # Watch SSM version — react immediately when another container updates credentials
+  CURRENT_VERSION=$(aws ssm get-parameter --name "$SSM_CREDS_PATH" --region $REGION \
+    --query 'Parameter.Version' --output text 2>/dev/null || echo "0")
+
+  while true; do
+    sleep 30
+    NEW_VERSION=$(aws ssm get-parameter --name "$SSM_CREDS_PATH" --region $REGION \
+      --query 'Parameter.Version' --output text 2>/dev/null || echo "0")
+    if [ "$NEW_VERSION" != "$CURRENT_VERSION" ]; then
+      FRESH=$(aws ssm get-parameter --name "$SSM_CREDS_PATH" --with-decryption --region $REGION \
+        --query 'Parameter.Value' --output text 2>/dev/null || true)
+      if [ -n "$FRESH" ]; then
+        touch "$SSM_UPDATING_FLAG"
+        echo "$FRESH" > "$CLAUDE_DIR/.credentials.json"
+        sleep 1
+        rm -f "$SSM_UPDATING_FLAG"
+        echo "Credentials updated from SSM (v$CURRENT_VERSION → v$NEW_VERSION)."
+      fi
+      CURRENT_VERSION=$NEW_VERSION
+    fi
+  done &
+  echo "SSM version watcher started (check interval: 30s)."
 fi
 
 exec node /app/index.js

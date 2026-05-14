@@ -101,8 +101,6 @@ function createServer() {
         };
       }
 
-      const ghEnv = { ...process.env, GH_TOKEN: token };
-
       const repo_url = process.env.GITHUB_REPO_URL;
       const base_branch = "develop";
       if (!repo_url)
@@ -115,20 +113,6 @@ function createServer() {
           ],
         };
 
-      // gh CLI 설치 여부 확인
-      try {
-        await execAsync("gh --version");
-      } catch {
-        return {
-          content: [
-            {
-              type: "text",
-              text: "Error: gh CLI가 설치되어 있지 않습니다.\n\n설치 방법:\n  macOS:  brew install gh\n  Linux:  https://github.com/cli/cli/blob/trunk/docs/install_linux.md\n\n설치 후 'gh auth login'으로 인증하세요.",
-            },
-          ],
-        };
-      }
-
       const { owner, repo } = parseRepoUrl(repo_url);
 
       const now = new Date();
@@ -138,29 +122,6 @@ function createServer() {
         .replace(/[-T:]/g, "")
         .slice(0, 12);
       const branchName = `agent/${datePart}-${slugify(prompt)}`;
-
-      // Check if this branch already exists — handles ALB-timeout retries
-      try {
-        const { stdout: existingPrJson } = await execAsync(
-          `gh pr list --repo ${owner}/${repo} --head ${branchName} --state open --json url,number`,
-          { env: ghEnv },
-        );
-        const existingPrs = JSON.parse(existingPrJson || "[]");
-        if (existingPrs.length > 0) {
-          const pr = existingPrs[0];
-          await sendLog(`♻️ 이미 생성된 PR 발견: ${pr.url}`);
-          return {
-            content: [
-              {
-                type: "text",
-                text: `♻️ 이미 생성된 PR이 있습니다 (중복 방지).\n\nURL: ${pr.url}\n브랜치: ${branchName}`,
-              },
-            ],
-          };
-        }
-      } catch {
-        /* PR 없으면 계속 진행 */
-      }
 
       const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "front-agent-"));
 
@@ -173,11 +134,8 @@ function createServer() {
         // 1. Clone
         await sendLog(`📦 저장소 클론 중... (${owner}/${repo}@${base_branch})`);
         await execAsync(
-          `gh repo clone ${owner}/${repo} . -- --depth=1 --branch ${base_branch}`,
-          {
-            cwd: tmpDir,
-            env: ghEnv,
-          },
+          `git clone --depth=1 --branch ${base_branch} https://x-access-token:${token}@github.com/${owner}/${repo}.git .`,
+          { cwd: tmpDir },
         );
 
         // Embed token in remote URL so git push works without a credential helper
@@ -226,10 +184,7 @@ function createServer() {
             { cwd: tmpDir },
           );
         }
-        await execAsync(`git push origin ${branchName}`, {
-          cwd: tmpDir,
-          env: ghEnv,
-        });
+        await execAsync(`git push origin ${branchName}`, { cwd: tmpDir });
 
         // 6. Return branch info for GitHub MCP to create PR
         const prTitle = agentTitle || extractTitle(summary);
