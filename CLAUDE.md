@@ -18,7 +18,6 @@
 - 웹 관련 구현 → `mcp__web__implement_and_pr`
 - 익스텐션 관련 구현 → `mcp__extension__implement_and_pr`
 - 대상이 명확하지 않으면 연결된 모든 MCP에 동시에 호출
-- `implement_and_pr` 호출 시 `gh auth token` 명령어를 실행해 결과를 `github_token` 파라미터로 함께 전달하세요.
 - `prompt` 파라미터에 사용자 요청을 그대로 전달하세요.
 
 ### 예외: 로컬 직접 수정 허용

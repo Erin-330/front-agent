@@ -1,5 +1,12 @@
 {
   "mcpServers": {
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "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"
+      }
+    },
     "web": {
       "type": "http",
       "url": "http://mcp-agents-staging-alb-249976027.us-east-1.elb.amazonaws.com:5007/mcp",

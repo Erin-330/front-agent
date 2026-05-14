@@ -18,7 +18,7 @@ docker buildx build --platform linux/amd64 -t $ECR_URI:latest --push "$SCRIPT_DI
 
 echo "📝 Registering task definition (family: $TASK_FAMILY)..."
 ENV_JSON=$(grep -v '^#' "$SCRIPT_DIR/.env" | grep '=' | while IFS='=' read -r key value; do
-  printf '{"name":"%s","value":"%s"}\n' "$key" "$value"
+  jq -n --arg name "$key" --arg value "$value" '{"name": $name, "value": $value}'
 done | jq -s '.')
 
 CURRENT_TASK_DEF=$(aws ecs describe-services \
