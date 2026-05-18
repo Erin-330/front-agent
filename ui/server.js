@@ -92,8 +92,9 @@ async function loadMcpConfig() {
 function createStdioClient(command, args, env) {
   console.log(`[spawn] command: ${command}, args: ${JSON.stringify(args)}`);
   const child = spawn(command, args, {
-    env: { ...process.env, ...env },
+    env: { ...process.env, ...env, HOME: "/tmp", npm_config_cache: "/tmp/.npm" },
     stdio: ["pipe", "pipe", "pipe"],
+    cwd: __dirname,
   });
 
   child.on("error", (err) => console.error(`[spawn error] ${err.message}`));
