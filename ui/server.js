@@ -1,6 +1,6 @@
 import "dotenv/config";
 import express from "express";
-import session from "express-session";
+import cookieSession from "cookie-session";
 import path from "path";
 import fs from "fs/promises";
 import { fileURLToPath } from "url";
@@ -12,11 +12,12 @@ const app = express();
 
 app.use(express.json());
 app.use(
-  session({
-    secret: process.env.SESSION_SECRET || "dev-secret-change-me",
-    resave: false,
-    saveUninitialized: false,
-    cookie: { maxAge: 7 * 24 * 60 * 60 * 1000 },
+  cookieSession({
+    name: "session",
+    keys: [process.env.SESSION_SECRET || "dev-secret-change-me"],
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
   })
 );
 app.use(express.static(path.join(__dirname, "public")));
@@ -72,7 +73,7 @@ app.get("/api/me", requireAuth, (req, res) => {
 });
 
 app.post("/auth/logout", (req, res) => {
-  req.session.destroy();
+  req.session = null;
   res.json({ ok: true });
 });
 
