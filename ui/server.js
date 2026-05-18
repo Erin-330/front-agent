@@ -68,8 +68,8 @@ app.get("/auth/github/callback", async (req, res) => {
     req.session.user = { login: user.login, name: user.name || user.login, avatar_url: user.avatar_url };
     res.redirect("/dashboard.html");
   } catch (err) {
-    console.error("OAuth callback error:", err.message);
-    res.redirect(`/?error=${encodeURIComponent(err.message)}`);
+    const debug = `hasId:${!!process.env.GITHUB_CLIENT_ID},hasSecret:${!!process.env.GITHUB_CLIENT_SECRET},redirectUri:${process.env.REDIRECT_URI}`;
+    res.redirect(`/?error=${encodeURIComponent(err.message + " | " + debug)}`);
   }
 });
 
