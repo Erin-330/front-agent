@@ -53,8 +53,11 @@ app.get("/auth/github/callback", async (req, res) => {
         code,
       }),
     });
-    const { access_token, error, error_description } = await tokenRes.json();
+    const tokenData = await tokenRes.json();
+    console.log("GitHub token response:", JSON.stringify(tokenData));
+    const { access_token, error, error_description } = tokenData;
     if (error) throw new Error(error_description || error);
+    if (!access_token) throw new Error(`token missing: ${JSON.stringify(tokenData)}`);
 
     const userRes = await fetch("https://api.github.com/user", {
       headers: { Authorization: `Bearer ${access_token}`, "User-Agent": "mcp-orchestrator" },
@@ -65,6 +68,7 @@ app.get("/auth/github/callback", async (req, res) => {
     req.session.user = { login: user.login, name: user.name || user.login, avatar_url: user.avatar_url };
     res.redirect("/dashboard.html");
   } catch (err) {
+    console.error("OAuth callback error:", err.message);
     res.redirect(`/?error=${encodeURIComponent(err.message)}`);
   }
 });
