@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MCP Orchestrator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .server-card.selected { border-color: #6366f1; background-color: #1e1b4b; }
+    .log-entry { animation: fadeIn 0.15s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; } }
+  </style>
+</head>
+<body class="min-h-screen bg-gray-950 text-gray-100">
+
+  <header class="border-b border-gray-800 px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <span class="text-xl">⚡</span>
+      <span class="font-semibold text-white">MCP Orchestrator</span>
+    </div>
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2 text-sm text-gray-400">
+        <img id="user-avatar" class="w-7 h-7 rounded-full hidden" />
+        <span id="user-name"></span>
+      </div>
+      <button id="logout-btn" class="text-xs text-gray-500 hover:text-gray-300 border border-gray-700 px-3 py-1.5 rounded transition-colors">
+        로그아웃
+      </button>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-6 py-8 space-y-8">
+
+    <!-- MCP 서버 목록 -->
+    <section>
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-xs font-medium text-gray-400 uppercase tracking-wider">MCP 서버</h2>
+        <button id="refresh-btn" class="text-xs text-indigo-400 hover:text-indigo-300">새로고침</button>
+      </div>
+      <div id="servers-grid" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div class="text-gray-600 text-sm">불러오는 중...</div>
+      </div>
+      <p class="text-xs text-gray-600 mt-2">클릭하여 서버 선택 (복수 선택 가능)</p>
+    </section>
+
+    <!-- GitHub 툴 패널 (github 서버 선택 시) -->
+    <section id="github-panel" class="hidden">
+      <div class="border border-indigo-800 bg-indigo-950/30 rounded-lg p-5 space-y-4">
+        <h2 class="text-xs font-medium text-indigo-300 uppercase tracking-wider">GitHub MCP — 툴 실행</h2>
+
+        <div class="flex gap-3 items-start">
+          <div class="flex-1 space-y-1">
+            <label class="text-xs text-gray-400">툴 선택</label>
+            <select id="gh-tool-select"
+              class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-indigo-500">
+              <option value="">— 로딩 중 —</option>
+            </select>
+          </div>
+          <button id="gh-load-tools-btn"
+            class="mt-5 text-xs text-indigo-400 hover:text-indigo-300 border border-indigo-800 px-3 py-2 rounded transition-colors whitespace-nowrap">
+            툴 목록 갱신
+          </button>
+        </div>
+
+        <div id="gh-tool-desc" class="text-xs text-gray-500 hidden"></div>
+
+        <div class="space-y-1">
+          <label class="text-xs text-gray-400">인자 (JSON)</label>
+          <textarea id="gh-args-input"
+            class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm font-mono text-gray-100 placeholder-gray-600 focus:outline-none focus:border-indigo-500 resize-none"
+            rows="5" placeholder='{"owner": "...", "repo": "..."}'></textarea>
+        </div>
+
+        <div class="flex justify-end">
+          <button id="gh-run-btn"
+            class="bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors flex items-center gap-2">
+            <span id="gh-run-label">실행</span>
+            <span id="gh-run-spinner" class="hidden">
+              <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+              </svg>
+            </span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Prompt 입력 (HTTP 서버용) -->
+    <section id="prompt-section">
+      <h2 class="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">프롬프트 <span class="text-gray-600 normal-case">(web / extension)</span></h2>
+      <div class="space-y-3">
+        <textarea id="prompt-input"
+          class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:border-indigo-500 resize-none"
+          rows="4" placeholder="구현할 기능이나 수정 사항을 입력하세요...&#10;Ctrl+Enter로 전송"></textarea>
+        <div class="flex items-center justify-between">
+          <div id="selected-summary" class="text-xs text-gray-500">선택된 서버 없음</div>
+          <button id="send-btn"
+            class="bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors flex items-center gap-2">
+            <span id="send-label">전송</span>
+            <span id="send-spinner" class="hidden">
+              <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+              </svg>
+            </span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 응답 로그 -->
+    <section id="log-section" class="hidden">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-xs font-medium text-gray-400 uppercase tracking-wider">응답</h2>
+        <button id="clear-log-btn" class="text-xs text-gray-600 hover:text-gray-400">지우기</button>
+      </div>
+      <div id="log-area"
+        class="bg-gray-900 border border-gray-800 rounded-lg p-4 space-y-1.5 max-h-[500px] overflow-y-auto font-mono text-xs">
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    let selectedServers = new Set();
+    let serverMeta = {};  // name → { type, status }
+    let ghTools = [];
+    let isRunning = false;
+
+    // ── 초기화 ─────────────────────────────────────────────────────
+    async function init() {
+      const res = await fetch("/api/me");
+      if (!res.ok) { location.href = "/"; return; }
+      const { user } = await res.json();
+      document.getElementById("user-name").textContent = user.name || user.login;
+      const av = document.getElementById("user-avatar");
+      if (user.avatar_url) { av.src = user.avatar_url; av.classList.remove("hidden"); }
+      await loadServers();
+    }
+
+    // ── 서버 목록 ──────────────────────────────────────────────────
+    async function loadServers() {
+      const grid = document.getElementById("servers-grid");
+      grid.innerHTML = '<div class="text-gray-600 text-sm">불러오는 중...</div>';
+      const res = await fetch("/api/mcp-servers");
+      const servers = await res.json();
+      serverMeta = {};
+      grid.innerHTML = "";
+
+      servers.forEach((srv) => {
+        serverMeta[srv.name] = srv;
+        const isConnected = srv.status === "connected";
+        const statusColor = isConnected ? "bg-green-500" : srv.status === "local" ? "bg-yellow-500" : "bg-red-500";
+        const statusText = isConnected ? "연결됨" : srv.status === "local" ? "로컬 전용" : "연결 안됨";
+        const statusTextColor = isConnected ? "text-green-400" : srv.status === "local" ? "text-yellow-400" : "text-red-400";
+
+        const card = document.createElement("div");
+        card.className = "server-card border border-gray-800 rounded-lg p-4 transition-all select-none " + (isConnected ? "cursor-pointer hover:border-gray-600" : "opacity-50");
+        card.dataset.name = srv.name;
+        card.innerHTML = `
+          <div class="flex items-start justify-between mb-1.5">
+            <span class="font-medium text-sm text-white">${srv.name}</span>
+            <span class="flex items-center gap-1.5 text-xs ${statusTextColor}">
+              <span class="w-1.5 h-1.5 rounded-full ${statusColor}"></span>${statusText}
+            </span>
+          </div>
+          <div class="text-xs text-gray-500">${srv.type === "http" ? (srv.url || "") : (srv.note || "")}</div>
+        `;
+
+        if (isConnected) {
+          card.addEventListener("click", () => toggleServer(card, srv.name, srv));
+        }
+        grid.appendChild(card);
+      });
+    }
+
+    function toggleServer(card, name, srv) {
+      if (selectedServers.has(name)) {
+        selectedServers.delete(name);
+        card.classList.remove("selected");
+      } else {
+        selectedServers.add(name);
+        card.classList.add("selected");
+      }
+      updateUI();
+    }
+
+    function updateUI() {
+      // selected summary
+      const el = document.getElementById("selected-summary");
+      const httpSelected = [...selectedServers].filter(n => serverMeta[n]?.type === "http");
+      const ghSelected = selectedServers.has("github");
+
+      el.textContent = selectedServers.size === 0 ? "선택된 서버 없음" : `선택: ${[...selectedServers].join(", ")}`;
+
+      // github 패널
+      const ghPanel = document.getElementById("github-panel");
+      if (ghSelected) {
+        ghPanel.classList.remove("hidden");
+        if (ghTools.length === 0) loadGithubTools();
+      } else {
+        ghPanel.classList.add("hidden");
+      }
+    }
+
+    // ── GitHub 툴 목록 ─────────────────────────────────────────────
+    async function loadGithubTools() {
+      const select = document.getElementById("gh-tool-select");
+      select.innerHTML = '<option value="">로딩 중...</option>';
+      try {
+        const res = await fetch("/api/tools/github");
+        if (!res.ok) throw new Error(await res.text());
+        ghTools = await res.json();
+        select.innerHTML = ghTools.map(t => `<option value="${t.name}">${t.name}</option>`).join("");
+        // create_pull_request 디폴트 선택
+        const defaultTool = ghTools.find(t => t.name === "create_pull_request") || ghTools[0];
+        if (defaultTool) {
+          select.value = defaultTool.name;
+          select.dispatchEvent(new Event("change"));
+        }
+      } catch (err) {
+        select.innerHTML = `<option value="">오류: ${err.message}</option>`;
+      }
+    }
+
+    document.getElementById("gh-tool-select").addEventListener("change", (e) => {
+      const tool = ghTools.find(t => t.name === e.target.value);
+      const desc = document.getElementById("gh-tool-desc");
+      if (tool?.description) {
+        desc.textContent = tool.description;
+        desc.classList.remove("hidden");
+      } else {
+        desc.classList.add("hidden");
+      }
+      // 스키마에서 인자 템플릿 생성
+      if (tool?.inputSchema?.properties) {
+        const template = {};
+        Object.entries(tool.inputSchema.properties).forEach(([k, v]) => {
+          template[k] = v.type === "string" ? "" : v.type === "number" ? 0 : v.type === "boolean" ? false : null;
+        });
+        document.getElementById("gh-args-input").value = JSON.stringify(template, null, 2);
+      }
+    });
+
+    document.getElementById("gh-load-tools-btn").addEventListener("click", () => {
+      ghTools = [];
+      loadGithubTools();
+    });
+
+    // ── GitHub 툴 실행 ─────────────────────────────────────────────
+    document.getElementById("gh-run-btn").addEventListener("click", async () => {
+      const tool = document.getElementById("gh-tool-select").value;
+      if (!tool) { alert("툴을 선택하세요."); return; }
+      let args = {};
+      const argsText = document.getElementById("gh-args-input").value.trim();
+      if (argsText) {
+        try { args = JSON.parse(argsText); } catch { alert("인자 JSON이 올바르지 않습니다."); return; }
+      }
+      if (isRunning) return;
+
+      setRunning(true, "github");
+      clearLog(); showLog();
+
+      const res = await fetch("/api/call/github", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tool, args }),
+      });
+      await streamResponse(res, "github");
+      setRunning(false, "github");
+    });
+
+    // ── Prompt 전송 ────────────────────────────────────────────────
+    document.getElementById("send-btn").addEventListener("click", async () => {
+      const prompt = document.getElementById("prompt-input").value.trim();
+      if (!prompt) { alert("프롬프트를 입력하세요."); return; }
+      const httpServers = [...selectedServers].filter(n => serverMeta[n]?.type === "http");
+      if (httpServers.length === 0) { alert("HTTP 서버(web/extension)를 하나 이상 선택하세요."); return; }
+      if (isRunning) return;
+
+      setRunning(true, "prompt");
+      clearLog(); showLog();
+
+      const res = await fetch("/api/prompt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ servers: httpServers, prompt }),
+      });
+      await streamResponse(res, "prompt");
+      setRunning(false, "prompt");
+    });
+
+    // ── SSE 스트림 처리 ────────────────────────────────────────────
+    async function streamResponse(res, mode) {
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const lines = buf.split("\n");
+        buf = lines.pop();
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            try { handleMessage(JSON.parse(line.slice(6)), mode); } catch {}
+          }
+        }
+      }
+    }
+
+    function handleMessage(msg, mode) {
+      if (msg.type === "complete") { appendLog("system", "✅ 완료"); return; }
+      if (msg.type === "done") { appendLog(msg.server || "system", "✅ 완료", "text-green-400"); return; }
+      if (msg.type === "error") { appendLog(msg.server || "system", `❌ ${msg.message}`, "text-red-400"); return; }
+      if (msg.type === "status") { appendLog(msg.server || "system", msg.message, "text-blue-400"); return; }
+      if (msg.type === "pr_url") { appendLogLink(msg.server || "github", "🎉 PR 생성 완료!", msg.url); return; }
+
+      // github tool result
+      if (msg.type === "result" && msg.data) {
+        const content = msg.data.content;
+        if (Array.isArray(content)) {
+          content.forEach(c => c.type === "text" && appendLog("github", c.text, "text-gray-200"));
+        } else {
+          appendLog("github", JSON.stringify(msg.data, null, 2), "text-gray-200");
+        }
+        return;
+      }
+
+      // HTTP 서버 SSE 이벤트
+      if (msg.type === "event" && msg.data) {
+        const data = msg.data;
+        if (data.method === "notifications/message") {
+          appendLog(msg.server, `💬 ${data.params?.data || ""}`, "text-gray-400");
+        } else if (data.result?.content) {
+          data.result.content.forEach(c => c.type === "text" && appendLog(msg.server, c.text, "text-gray-200"));
+        } else {
+          appendLog(msg.server || "event", JSON.stringify(data), "text-gray-600");
+        }
+      }
+    }
+
+    function appendLog(tag, text, colorClass = "text-gray-300") {
+      const area = document.getElementById("log-area");
+      const entry = document.createElement("div");
+      entry.className = "log-entry flex gap-2";
+      const t = document.createElement("span");
+      t.className = "text-indigo-500 shrink-0 w-20 truncate";
+      t.textContent = `[${tag}]`;
+      const c = document.createElement("pre");
+      c.className = `${colorClass} whitespace-pre-wrap break-words flex-1`;
+      c.textContent = text;
+      entry.append(t, c);
+      area.appendChild(entry);
+      area.scrollTop = area.scrollHeight;
+    }
+
+    function appendLogLink(tag, label, url) {
+      const area = document.getElementById("log-area");
+      const entry = document.createElement("div");
+      entry.className = "log-entry flex gap-2 items-center";
+      const t = document.createElement("span");
+      t.className = "text-indigo-500 shrink-0 w-20 truncate";
+      t.textContent = `[${tag}]`;
+      const link = document.createElement("a");
+      link.href = url;
+      link.target = "_blank";
+      link.className = "text-green-400 hover:text-green-300 underline break-all";
+      link.textContent = `${label} ${url}`;
+      entry.append(t, link);
+      area.appendChild(entry);
+      area.scrollTop = area.scrollHeight;
+    }
+
+    function clearLog() { document.getElementById("log-area").innerHTML = ""; }
+    function showLog() { document.getElementById("log-section").classList.remove("hidden"); }
+
+    function setRunning(running, mode) {
+      isRunning = running;
+      if (mode === "github") {
+        const btn = document.getElementById("gh-run-btn");
+        btn.disabled = running;
+        document.getElementById("gh-run-label").textContent = running ? "실행 중..." : "실행";
+        document.getElementById("gh-run-spinner").classList.toggle("hidden", !running);
+      } else {
+        const btn = document.getElementById("send-btn");
+        btn.disabled = running;
+        document.getElementById("send-label").textContent = running ? "실행 중..." : "전송";
+        document.getElementById("send-spinner").classList.toggle("hidden", !running);
+      }
+    }
+
+    // ── 이벤트 바인딩 ─────────────────────────────────────────────
+    document.getElementById("refresh-btn").addEventListener("click", loadServers);
+    document.getElementById("clear-log-btn").addEventListener("click", clearLog);
+    document.getElementById("logout-btn").addEventListener("click", async () => {
+      await fetch("/auth/logout", { method: "POST" });
+      location.href = "/";
+    });
+    document.getElementById("prompt-input").addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) document.getElementById("send-btn").click();
+    });
+
+    init();
+  </script>
+</body>
+</html>
