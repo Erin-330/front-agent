@@ -7,8 +7,9 @@
     "dev": "node --watch server.js"
   },
   "dependencies": {
+    "@modelcontextprotocol/server-github": "^2025.4.8",
+    "cookie-session": "^2.1.0",
     "dotenv": "^17.4.2",
-    "express": "^4.18.0",
-    "cookie-session": "^2.1.0"
+    "express": "^4.18.0"
   }
 }
