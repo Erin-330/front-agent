@@ -90,16 +90,22 @@ async function loadMcpConfig() {
 
 // ── Stdio MCP Client ──────────────────────────────────────────────
 function createStdioClient(command, args, env) {
+  console.log(`[spawn] command: ${command}, args: ${JSON.stringify(args)}`);
   const child = spawn(command, args, {
     env: { ...process.env, ...env },
     stdio: ["pipe", "pipe", "pipe"],
   });
+
+  child.on("error", (err) => console.error(`[spawn error] ${err.message}`));
+  child.on("exit", (code, signal) => console.log(`[spawn exit] code=${code} signal=${signal}`));
+  child.stderr.on("data", (data) => console.error(`[spawn stderr] ${data.toString().trim()}`));
 
   let idSeq = 1;
   const pending = new Map();
 
   const rl = createInterface({ input: child.stdout });
   rl.on("line", (line) => {
+    console.log(`[spawn stdout] ${line.trim()}`);
     try {
       const msg = JSON.parse(line.trim());
       if (msg.id != null && pending.has(msg.id)) {
