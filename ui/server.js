@@ -10,6 +10,7 @@ import { createInterface } from "readline";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 
+app.set("trust proxy", 1);
 app.use(express.json());
 app.use(
   cookieSession({
@@ -409,5 +410,9 @@ app.post("/api/prompt", requireAuth, async (req, res) => {
   res.end();
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`\n🚀 MCP Orchestrator UI: http://localhost:${PORT}\n`));
+export default app;
+
+if (!process.env.VERCEL) {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => console.log(`\n🚀 MCP Orchestrator UI: http://localhost:${PORT}\n`));
+}
