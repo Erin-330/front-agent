@@ -127,7 +127,7 @@ function createStdioClient(command, args, env) {
           pending.delete(id);
           reject(new Error(`timeout: ${method}`));
         }
-      }, 30000);
+      }, 3600000);
     });
 
   const notify = (method, params) =>

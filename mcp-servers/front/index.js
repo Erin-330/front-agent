@@ -59,7 +59,7 @@ function extractTitle(summary) {
   return summary.slice(0, 72);
 }
 
-async function hasChanges(workDir, baseBranch = "feature/add-claude-md") {
+async function hasChanges(workDir, baseBranch = "develop") {
   const { stdout: status } = await execAsync("git status --porcelain", { cwd: workDir });
   if (status.trim().length > 0) return true;
   const { stdout: log } = await execAsync(`git log origin/${baseBranch}..HEAD --oneline`, { cwd: workDir });
@@ -102,7 +102,7 @@ function createServer() {
       }
 
       const repo_url = process.env.GITHUB_REPO_URL;
-      const base_branch = "feature/add-claude-md";
+      const base_branch = "develop";
       if (!repo_url)
         return {
           content: [

@@ -1,6 +1,13 @@
 # front-agent
 
-이 세션은 `front-test` GitHub 레포의 프론트엔드 작업을 MCP를 통해 자동화하는 에이전트입니다.
+이 세션은 MCP를 통해 GitHub 레포의 프론트엔드 작업을 자동화하는 에이전트입니다.
+
+## MCP별 타겟 레포
+
+| MCP | GitHub 레포 |
+|---|---|
+| `mcp__web__*` | `Erin-330/front-test` |
+| `mcp__extension__*` | `Erin-330/extension-test` |
 
 ## 핵심 규칙
 
@@ -19,6 +26,18 @@
 - 익스텐션 관련 구현 → `mcp__extension__implement_and_pr`
 - 대상이 명확하지 않으면 연결된 모든 MCP에 동시에 호출
 - `prompt` 파라미터에 사용자 요청을 그대로 전달하세요.
+
+### Transport 오류 복구 (PR 자동 재시도)
+
+`mcp__web__implement_and_pr` 또는 `mcp__extension__implement_and_pr` 호출이 transport 오류로 실패한 경우:
+
+1. **호출한 MCP에 맞는 레포**에서 브랜치 목록 조회 (`agent/*` 패턴)
+   - `mcp__web__implement_and_pr` 실패 → `Erin-330/front-test`
+   - `mcp__extension__implement_and_pr` 실패 → `Erin-330/extension-test`
+2. 오픈된 PR 목록과 비교해 PR이 없는 최신 `agent/*` 브랜치를 찾는다
+3. 해당 브랜치로 `mcp__github__create_pull_request`를 통해 PR 생성 (base: `develop`)
+4. 사용자에게 묻지 않고 바로 진행
+5. **PR 없는 새 브랜치가 없더라도 `implement_and_pr`을 재호출하지 말 것** — 서버가 아직 작업 중일 수 있으므로 새 브랜치가 생길 때까지 기다린 후 PR만 생성한다
 
 ### 예외: 로컬 직접 수정 허용
 
