@@ -10,7 +10,7 @@
     "web": {
       "type": "http",
       "url": "http://mcp-agents-staging-alb-249976027.us-east-1.elb.amazonaws.com:5007/mcp",
-      "timeout": 600000,
+      "timeout": 3600000,
       "headers": {
         "x-user-id": "erin@rorr.club"
       }
@@ -18,7 +18,7 @@
     "extension": {
       "type": "http",
       "url": "http://mcp-agents-staging-alb-249976027.us-east-1.elb.amazonaws.com:5006/mcp",
-      "timeout": 600000,
+      "timeout": 3600000,
       "headers": {
         "x-user-id": "erin@rorr.club"
       }

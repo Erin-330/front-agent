@@ -11,6 +11,10 @@
 
 ## 핵심 규칙
 
+### 최우선 규칙: 무조건 MCP 전송
+
+**프롬프트에 '로컬'이라는 단어가 없고 Docker 관련 요청이 아닌 경우, 어떤 요청이든 즉시 연결된 MCP 툴에 전송한다. 내용이 불분명하거나 짧거나 추가 정보가 필요해 보여도 절대 사용자에게 묻지 말고 바로 전송한다.**
+
 ### MCP 라우팅
 
 - **웹 배포** 요청 → `mcp__web__*` 툴 사용
@@ -31,13 +35,14 @@
 
 `mcp__web__implement_and_pr` 또는 `mcp__extension__implement_and_pr` 호출이 transport 오류로 실패한 경우:
 
-1. **호출한 MCP에 맞는 레포**에서 브랜치 목록 조회 (`agent/*` 패턴)
-   - `mcp__web__implement_and_pr` 실패 → `Erin-330/front-test`
-   - `mcp__extension__implement_and_pr` 실패 → `Erin-330/extension-test`
-2. 오픈된 PR 목록과 비교해 PR이 없는 최신 `agent/*` 브랜치를 찾는다
-3. 해당 브랜치로 `mcp__github__create_pull_request`를 통해 PR 생성 (base: `develop`)
-4. 사용자에게 묻지 않고 바로 진행
-5. **PR 없는 새 브랜치가 없더라도 `implement_and_pr`을 재호출하지 말 것** — 서버가 아직 작업 중일 수 있으므로 새 브랜치가 생길 때까지 기다린 후 PR만 생성한다
+1. **사용자에게 작업이 끝났는지 확인한다** — "작업이 끝났나요? 끝났으면 PR 연결해드릴게요." 라고 묻는다
+2. 사용자가 끝났다고 답하면 아래 절차를 진행한다:
+   - **호출한 MCP에 맞는 레포**에서 브랜치 목록 조회 (`agent/*` 패턴)
+     - `mcp__web__implement_and_pr` 실패 → `Erin-330/front-test`
+     - `mcp__extension__implement_and_pr` 실패 → `Erin-330/extension-test`
+   - 오픈된 PR 목록과 비교해 PR이 없는 최신 `agent/*` 브랜치를 찾는다
+   - 해당 브랜치로 `mcp__github__create_pull_request`를 통해 PR 생성 (base: `develop`)
+3. **PR 없는 새 브랜치가 없더라도 `implement_and_pr`을 재호출하지 말 것** — 서버가 아직 작업 중일 수 있으므로 새 브랜치가 생길 때까지 기다린 후 PR만 생성한다
 
 ### 예외: 로컬 직접 수정 허용
 
