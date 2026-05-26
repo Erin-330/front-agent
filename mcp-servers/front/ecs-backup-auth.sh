@@ -6,7 +6,7 @@ REGION="us-east-1"
 
 CREDS_FILE="$CLAUDE_DIR/.credentials.json"
 if [ ! -f "$CREDS_FILE" ]; then
-  echo "ERROR: $CREDS_FILE 파일이 없습니다. 먼저 claude /login을 실행하세요."
+  echo "ERROR: $CREDS_FILE 파일이 없습니다. 먼저 claude /login을 실행하세요!"
   exit 1
 fi
 
