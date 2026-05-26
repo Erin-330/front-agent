@@ -1,0 +1,124 @@
+name: Deploy to ECS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+
+    env:
+      ECR_URI: 239460481239.dkr.ecr.us-east-1.amazonaws.com/mcp-agents-front
+      CLUSTER: mcp-agents-staging-cluster
+      REGION: us-east-1
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Login to ECR
+        run: |
+          aws ecr get-login-password --region $REGION \
+            | docker login --username AWS --password-stdin $ECR_URI
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./mcp-servers/front
+          platforms: linux/amd64
+          push: true
+          tags: ${{ env.ECR_URI }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Deploy web to ECS
+        env:
+          SERVICE: mcp-agents-web
+          TASK_FAMILY: mcp-agents-web
+          ENV_CONTENT: ${{ secrets.WEB_ENV }}
+        run: |
+          echo "$ENV_CONTENT" > /tmp/web.env
+
+          ENV_JSON=$(grep -v '^#' /tmp/web.env | grep '=' | while IFS='=' read -r key value; do
+            jq -n --arg name "$key" --arg value "$value" '{"name": $name, "value": $value}'
+          done | jq -s '.')
+
+          CURRENT_TASK_DEF=$(aws ecs describe-services \
+            --cluster $CLUSTER --services $SERVICE --region $REGION \
+            --query 'services[0].taskDefinition' --output text)
+
+          NEW_TASK_DEF=$(aws ecs describe-task-definition \
+            --task-definition $CURRENT_TASK_DEF --region $REGION \
+            --query 'taskDefinition' --output json | \
+            jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .placementConstraints, .compatibilities, .registeredAt, .registeredBy)' | \
+            jq --argjson envJson "$ENV_JSON" --arg family "$TASK_FAMILY" '
+              .family = $family |
+              .containerDefinitions[0].environment = $envJson
+            ')
+
+          NEW_TASK_DEF_ARN=$(aws ecs register-task-definition \
+            --region $REGION \
+            --cli-input-json "$NEW_TASK_DEF" \
+            --query 'taskDefinition.taskDefinitionArn' --output text)
+
+          aws ecs update-service \
+            --cluster $CLUSTER --service $SERVICE \
+            --task-definition $NEW_TASK_DEF_ARN \
+            --region $REGION > /dev/null
+
+          aws ecs wait services-stable \
+            --cluster $CLUSTER --services $SERVICE --region $REGION
+
+          echo "✅ web deploy complete"
+
+      - name: Deploy extension to ECS
+        env:
+          SERVICE: mcp-agents-extension
+          TASK_FAMILY: mcp-agents-extension
+          ENV_CONTENT: ${{ secrets.EXTENSION_ENV }}
+        run: |
+          echo "$ENV_CONTENT" > /tmp/extension.env
+
+          ENV_JSON=$(grep -v '^#' /tmp/extension.env | grep '=' | while IFS='=' read -r key value; do
+            jq -n --arg name "$key" --arg value "$value" '{"name": $name, "value": $value}'
+          done | jq -s '.')
+
+          CURRENT_TASK_DEF=$(aws ecs describe-services \
+            --cluster $CLUSTER --services $SERVICE --region $REGION \
+            --query 'services[0].taskDefinition' --output text)
+
+          NEW_TASK_DEF=$(aws ecs describe-task-definition \
+            --task-definition $CURRENT_TASK_DEF --region $REGION \
+            --query 'taskDefinition' --output json | \
+            jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .placementConstraints, .compatibilities, .registeredAt, .registeredBy)' | \
+            jq --argjson envJson "$ENV_JSON" --arg family "$TASK_FAMILY" '
+              .family = $family |
+              .containerDefinitions[0].environment = $envJson
+            ')
+
+          NEW_TASK_DEF_ARN=$(aws ecs register-task-definition \
+            --region $REGION \
+            --cli-input-json "$NEW_TASK_DEF" \
+            --query 'taskDefinition.taskDefinitionArn' --output text)
+
+          aws ecs update-service \
+            --cluster $CLUSTER --service $SERVICE \
+            --task-definition $NEW_TASK_DEF_ARN \
+            --region $REGION > /dev/null
+
+          aws ecs wait services-stable \
+            --cluster $CLUSTER --services $SERVICE --region $REGION
+
+          echo "✅ extension deploy complete"
