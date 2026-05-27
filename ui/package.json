@@ -1,0 +1,15 @@
+{
+  "name": "mcp-orchestrator-ui",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server-github": "^2025.4.8",
+    "cookie-session": "^2.1.0",
+    "dotenv": "^17.4.2",
+    "express": "^4.18.0"
+  }
+}

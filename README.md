@@ -83,12 +83,12 @@ PR URL 반환 → Claude(대화)가 사용자에게 출력
 
 ## 인증
 
-| | Claude CLI 인증 | GitHub 인증 |
-|---|---|---|
-| **무엇** | claude.ai 세션 토큰 | GitHub Personal Access Token |
-| **어디서** | SSM → `.credentials.json` | 호출 시 `github_token` 파라미터 또는 `.env`의 `GH_TOKEN` |
-| **왜 가능** | Team 플랜 구독 중 | 레포 접근 권한 있는 토큰 |
-| **용도** | Anthropic 서버에 AI 요청 | clone, push, PR 생성 |
+|             | Claude CLI 인증           | GitHub 인증                                              |
+| ----------- | ------------------------- | -------------------------------------------------------- |
+| **무엇**    | claude.ai 세션 토큰       | GitHub Personal Access Token                             |
+| **어디서**  | SSM → `.credentials.json` | 호출 시 `github_token` 파라미터 또는 `.env`의 `GH_TOKEN` |
+| **왜 가능** | Team 플랜 구독 중         | 레포 접근 권한 있는 토큰                                 |
+| **용도**    | Anthropic 서버에 AI 요청  | clone, push, PR 생성                                     |
 
 ---
 
@@ -168,16 +168,16 @@ front-agent/
 
 ## MCP 툴
 
-| 툴 | 서비스 | 설명 |
-|---|---|---|
-| `mcp__web__implement_and_pr` | mcp-agents-web | 웹 레포 코드 수정 + PR 생성 |
+| 툴                                 | 서비스               | 설명                              |
+| ---------------------------------- | -------------------- | --------------------------------- |
+| `mcp__web__implement_and_pr`       | mcp-agents-web       | 웹 레포 코드 수정 + PR 생성       |
 | `mcp__extension__implement_and_pr` | mcp-agents-extension | 익스텐션 레포 코드 수정 + PR 생성 |
 
 ### 파라미터
 
-| 파라미터 | 필수 | 설명 |
-|---|---|---|
-| `prompt` | 필수 | 구현할 기능 또는 수정 사항 설명 |
+| 파라미터       | 필수 | 설명                                                                    |
+| -------------- | ---- | ----------------------------------------------------------------------- |
+| `prompt`       | 필수 | 구현할 기능 또는 수정 사항 설명                                         |
 | `github_token` | 선택 | `gh auth token`으로 획득한 PAT. 미전달 시 서버 환경변수 `GH_TOKEN` 사용 |
 
 ---
@@ -188,3 +188,5 @@ front-agent/
 GH_TOKEN=...            # GitHub Personal Access Token (repo 권한)
 GITHUB_REPO_URL=...     # 대상 레포 URL
 ```
+
+test
